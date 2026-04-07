@@ -14,7 +14,28 @@
         "aarch64-darwin"
         "x86_64-darwin"
       ];
-      forEachSystem = f: nixpkgs.lib.genAttrs systems (system: f nixpkgs.legacyPackages.${system});
+      forEachSystem =
+        f:
+        nixpkgs.lib.genAttrs systems (
+          system:
+          f (
+            import nixpkgs {
+              inherit system;
+              overlays = [
+                (final: prev: {
+                  rcodesign = prev.rcodesign.overrideAttrs (old: {
+                    checkFlags =
+                      old.checkFlags
+                      ++ prev.lib.optionals prev.stdenv.hostPlatform.isDarwin [
+                        # Fails in Nix sandbox: PermissionDenied when accessing /Applications
+                        "--skip=macho::tests::parse_applications_macho_signatures"
+                      ];
+                  });
+                })
+              ];
+            }
+          )
+        );
       rev = self.shortRev or self.dirtyShortRev or "dirty";
     in
     {
