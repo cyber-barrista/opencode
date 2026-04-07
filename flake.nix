@@ -14,6 +14,9 @@
         "aarch64-darwin"
         "x86_64-darwin"
       ];
+      bunVersion = builtins.head (
+        builtins.match "bun@(.+)" (builtins.fromJSON (builtins.readFile ./package.json)).packageManager
+      );
       forEachSystem =
         f:
         nixpkgs.lib.genAttrs systems (
@@ -23,6 +26,10 @@
               inherit system;
               overlays = [
                 (final: prev: {
+                  bun = prev.callPackage ./nix/bun.nix {
+                    bun = prev.bun;
+                    inherit bunVersion;
+                  };
                   rcodesign = prev.rcodesign.overrideAttrs (old: {
                     checkFlags =
                       old.checkFlags
